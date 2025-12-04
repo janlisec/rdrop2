@@ -18,7 +18,7 @@
 #'@export
 #' @examples \dontrun{
 #' # If you know me, you know why this query exists
-#' drop_search('gif') %>% select(path, is_dir, mime_type)
+#' drop_search('gif') |> select(path, is_dir, mime_type)
 #'}
 drop_search <- function(query,
                         path = "",
@@ -39,7 +39,7 @@ drop_search <- function(query,
   args <- drop_compact(
     list(
       query = query,
-      path = path,
+      path = ifelse(path=="", "/", path),
       start = as.integer(start),
       max_results = as.integer(max_results),
       mode = mode

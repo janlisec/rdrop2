@@ -42,7 +42,7 @@ search string as a substring.
 \examples{
 \dontrun{
 # If you know me, you know why this query exists
-drop_search('gif') \%>\% select(path, is_dir, mime_type)
+drop_search('gif') |> select(path, is_dir, mime_type)
 }
 }
 \references{

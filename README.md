@@ -56,7 +56,7 @@ saveRDS(token, file = "token.rds")
 
 ```r
 library(dplyr)
-drop_acc() %>% data.frame()
+drop_acc() |> data.frame()
 # Returns the following fields
 # [1] "account_id"            "name.given_name"      
 #  [3] "name.surname"          "name.familiar_name"   
@@ -91,8 +91,7 @@ drop_dir('public/gifs')
 #### Filter directory listing by object type (file/folder)
 
 ```r
-drop_dir() %>% 
-    filter(.tag == "folder")
+drop_dir() |> filter(.tag == "folder")
 ```
 
 #### Create folders on Dropbox

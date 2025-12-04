@@ -1,14 +1,3 @@
-#' Pipe operator
-#'
-#' @name %>%
-#' @rdname pipe
-#' @keywords internal
-#' @export
-#' @importFrom magrittr %>%
-#' @usage lhs \%>\% rhs
-NULL
-
-
 #' A local version of list compact from plyr.
 #' @noRd
 drop_compact <- function(l) Filter(Negate(is.null), l)
