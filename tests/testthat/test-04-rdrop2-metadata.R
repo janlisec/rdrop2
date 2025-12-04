@@ -1,38 +1,38 @@
-context("Testing drop_get_metadata")
+testthat::test_that(
+  desc = "Able to retrieve metadata for file in multiple ways",
+  code = {
+    testthat::skip_on_cran()
 
-test_that("Able to retrieve metadata for file in multiple ways", {
-  skip_on_cran()
+    # upload new file to root
+    tmp_file <- normalizePath(file.path(tempdir(), traceless("test-drop-get-metadata.csv")), mustWork = FALSE)
+    write.csv(mtcars, tmp_file)
+    testthat::expect_message(rdrop2::drop_upload(tmp_file), "uploaded")
 
-  # upload new file to root
-  file_name <- traceless("test-drop-get-metadata.csv")
-  write.csv(mtcars, file_name)
-  drop_upload(file_name)
+    # lookup by path
+    metadata <- rdrop2::drop_get_metadata(basename(tmp_file))
 
-  # lookup by path
-  metadata <- drop_get_metadata(file_name)
+    testthat::expect_true(is.list(metadata))
+    testthat::expect_equal(metadata$.tag, "file")
 
-  expect_is(metadata, "list")
-  expect_equal(metadata$.tag, "file")
+    # lookup by id
+    testthat::expect_identical(metadata, rdrop2::drop_get_metadata(metadata$id))
 
-  # lookup by id
-  expect_identical(metadata, drop_get_metadata(metadata$id))
+    # lookup by revision
+    testthat::expect_identical(metadata, rdrop2::drop_get_metadata(paste0("rev:", metadata$rev)))
 
-  # lookup by revision
-  expect_identical(metadata, drop_get_metadata(paste0("rev:", metadata$rev)))
+    # delete
+    rdrop2::drop_delete(basename(tmp_file))
 
-  # delete
-  drop_delete(file_name)
+    # get deleted metadata
+    deleted_metadata <- rdrop2::drop_get_metadata(basename(tmp_file), include_deleted = TRUE)
 
-  # get deleted metadata
-  deleted_metadata <- drop_get_metadata(file_name, include_deleted = TRUE)
+    testthat::expect_true(is.list(deleted_metadata))
+    testthat::expect_equal(deleted_metadata$.tag, "deleted")
+    testthat::expect_identical(
+      metadata[c("name", "path_lower", "path_display")],
+      deleted_metadata[c("name", "path_lower", "path_display")]
+    )
 
-  expect_is(deleted_metadata, "list")
-  expect_equal(deleted_metadata$.tag, "deleted")
-  expect_identical(
-    metadata[c("name", "path_lower", "path_display")],
-    deleted_metadata[c("name", "path_lower", "path_display")]
-  )
-
-  # cleanup
-  unlink(file_name)
+    # cleanup
+    force_unlink(tmp_file)
 })

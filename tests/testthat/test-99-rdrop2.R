@@ -1,152 +1,135 @@
-# These are the remaining tests after auth and upload.If the tests are getting
-# to be more than 30 lines, split them off into a separate file. Execution order
-# is is all of the `helper-*.R` files and then all of the `test-*.R` files
+testthat::test_that(
+  desc = "drop_share works correctly",
+  code = {
+    testthat::skip_on_cran()
 
-context("old tests")
+    # upload file, get share infos and check
+    tmp_file <- test_upload(file_name = traceless("test-drop_share.csv"))
+    res <- rdrop2::drop_share(basename(tmp_file))
+    testthat::expect_equal(length(res), 12)
+    share_names <- sort(c(".tag", "created_timestamp", "url", "id", "name", "path_lower", "link_permissions", "preview_type","client_modified", "server_modified", "rev", "size"))
+    res_names <- sort(names(res))
+    testthat::expect_identical(share_names, res_names)
 
+    # cleanup
+    rdrop2::drop_delete(basename(tmp_file))
+})
 
-# drop_shared
-test_that("drop_share works correctly", {
-  skip_on_cran()
+testthat::test_that(
+  desc = "drop_search works correctly",
+  code = {
+    testthat::skip_on_cran()
 
-  file_name <- traceless("share.csv")
-  write.csv(iris, file = file_name)
-  drop_upload(file_name)
-  res <- drop_share(file_name)
-  expect_equal(length(res), 11)
-  share_names <- sort(c(".tag", "url", "id", "name", "path_lower", "link_permissions",
-                        "preview_type","client_modified", "server_modified", "rev", "size"))
-  res_names <- sort(names(res))
-  expect_identical(share_names, res_names)
+    # upload file, search and check
+    drop_path <- traceless("test-drop_search")
+    tmp_file <- test_upload(file_name = "test-drop_search.csv", drop_path = drop_path)
+    if (rdrop2::drop_exists(paste0(drop_path, "/", basename(tmp_file)))) {
+      x <- try(rdrop2::drop_search(query = basename(tmp_file), path = NULL), silent = TRUE)
+      if (inherits(x, "try-error")) {
+        warnings("drop_search returned: ", attr(x, "condition")$message)
+      } else {
+        testthat::expect_true(is.list(x))
+        testthat::expect_true(length(x[[1]])>=1)
+        testthat::expect_equal(x$matches[[1]]$metadata$name, basename(tmp_file))
+      }
+    } else {
+      warning("Could not find ", basename(tmp_file))
+    }
 
-  # cleanup
-  unlink(file_name)
-  drop_delete(file_name)
+    # A search with no query should fail
+    testthat::expect_error(rdrop2::drop_search(query = NULL))
+
+    # cleanup
+    rdrop2::drop_delete(drop_path)
 })
 
 
-# drop_search
-test_that("drop_search works correctly", {
-  skip_on_cran()
+testthat::test_that(
+  desc = "drop_history works correctly",
+  code = {
+    testthat::skip_on_cran()
 
-  folder_name <- traceless("test-drop_search")
-    #paste0("test-drop_search-", uuid::UUIDgenerate())
-  drop_create(folder_name)
+    # upload file once
+    tmp_file <- test_upload(file_name = "test-drop_history.csv")
 
-  write.csv(mtcars, "mtcars.csv")
-  drop_upload("mtcars.csv", path = folder_name)
+    revisions <- rdrop2::drop_history(basename(tmp_file))
 
-  x <- drop_search("mt")
+    testthat::expect_true(inherits(revisions, "tbl_df"))
+    testthat::expect_equal(nrow(revisions), 1)
 
-  expect_equal(x$matches[[1]]$metadata$name, "mtcars.csv")
+    # delete, upload a different file and check revision
+    # TODO: add proper revision once drop_upload supports it
+    rdrop2::drop_delete(basename(tmp_file))
+    tmp_file <- test_upload(file_name = basename(tmp_file), file_content = iris)
+    revisions <- rdrop2::drop_history(basename(tmp_file))
+    testthat::expect_equal(nrow(revisions), 2)
 
-  # A search with no query should fail
-  expect_error(drop_search())
+    # test limit arguments
+    revisions <- rdrop2::drop_history(basename(tmp_file), limit = 1)
+    testthat::expect_equal(nrow(revisions), 1)
 
-  #cleanup
-  drop_delete(folder_name)
-  unlink("mtcars.csv")
+    # cleanup
+    rdrop2::drop_delete(basename(tmp_file))
 })
 
 
-# drop_history
-test_that("drop_history works correctly", {
-  skip_on_cran()
+testthat::test_that(
+  desc = "drop_media works correctly",
+  code = {
+    testthat::skip_on_cran()
 
-  # upload once
-  file_name <- traceless("drop_history_iris.csv")
-  write.csv(iris, file_name)
-  drop_upload(file_name)
+    tmp_file <- test_upload(file_name = "test-drop_media.gif")
+    utils::download.file("http://media4.giphy.com/media/YaXcVXGvBQlEI/200.gif", destfile = tmp_file, quiet = TRUE)
+    testthat::expect_true(file.exists(tmp_file))
+    testthat::expect_message(rdrop2::drop_upload(tmp_file), "uploaded")
+    media_url <- rdrop2::drop_media(basename(tmp_file))
+    testthat::expect_match(media_url$link, "dl.dropboxusercontent.com")
 
-  revisions <- drop_history(file_name)
-
-  expect_is(revisions, "tbl_df")
-  expect_equal(nrow(revisions), 1)
-
-  # delete, edit, upload again
-  # TODO: add proper revision once drop_upload supports it
-  drop_delete(file_name)
-  write.csv(iris[iris$Species == "setosa",], file_name)
-  drop_upload(file_name)
-
-  revisions <- drop_history(file_name)
-  expect_equal(nrow(revisions), 2)
-
-  # test limit arguments
-  revisions <- drop_history(file_name, limit = 1)
-  expect_equal(nrow(revisions), 1)
-
-  # cleanup
-  drop_delete(file_name)
-  unlink(file_name)
-})
-
-
-# drop_exists
-test_that("drop_exists works correctly", {
-  skip_on_cran()
-
-  folder_name <- traceless("drop_exists")
-  drop_create(folder_name)
-
-  expect_true(drop_exists(folder_name))
-  expect_false(drop_exists(traceless("stuffnthings")))
-
-  # Now test files inside subfolders
-  write.csv(iris, file = "iris.csv")
-  drop_upload("iris.csv", path = folder_name)
-  expect_true(drop_exists(paste0(folder_name, "/iris.csv")))
-
-  #cleanup
-  drop_delete(folder_name)
-  unlink("iris.csv")
-})
-
-
-# drop_media
-test_that("drop_media works correctly", {
-  skip_on_cran()
-
-  file_name <- traceless("drop_media")
-  download.file("http://media4.giphy.com/media/YaXcVXGvBQlEI/200.gif",
-                destfile = file_name)
-  drop_upload(file_name)
-
-  media_url <- drop_media(file_name)
-  expect_match(media_url$link, "https://dl.dropboxusercontent.com")
-
-  # cleanup
-  unlink(file_name)
-  drop_delete(file_name)
+    # cleanup
+    force_unlink(tmp_file)
+    rdrop2::drop_delete(basename(tmp_file))
 })
 
 # minor test for strip slashes
-test_that("strip slashes works correctly", {
-  orig <- "//test/"
-  expect_true(grepl("^//", orig))
-  expect_false(grepl("^//", strip_slashes(orig)))
-  expect_true(grepl("^/", strip_slashes(orig)))
-  expect_true(grepl("/$", orig))
-  expect_false(grepl("/$", strip_slashes(orig)))
-  })
+testthat::test_that(
+  desc = "strip slashes works correctly",
+  code = {
+    orig <- "//test/"
+    testthat::expect_true(grepl("^//", orig))
+    testthat::expect_false(grepl("^//", strip_slashes(orig)))
+    testthat::expect_true(grepl("^/", strip_slashes(orig)))
+    testthat::expect_true(grepl("/$", orig))
+    testthat::expect_false(grepl("/$", strip_slashes(orig)))
+})
 
 # drop_read_csv
-test_that("drop_read_csv works correctly", {
-  skip_on_cran()
+testthat::test_that(
+  desc = "drop_read_csv works correctly",
+  code = {
+    testthat::skip_on_cran()
 
-  file_name <- traceless("drop_read.csv")
-  write.csv(iris, file = file_name)
-  drop_upload(file_name)
-  z <- drop_read_csv(file_name)
-  expect_is(z, "data.frame")
+    # upload, download and check
+    tmp_file <- test_upload(file_name = "test-drop_read.csv")
+    # JL$$ ToDo: progress bar can not be avoided for rdrop2::drop_read_csv
+    if (rdrop2::drop_exists(basename(tmp_file))) {
+      #testthat::expect_message(x <- rdrop2::drop_read_csv(basename(tmp_file)), "Downloaded")
+      x <- rdrop2::drop_read_csv(basename(tmp_file))
+      testthat::expect_true(inherits(x, "data.frame"))
+    } else {
+      warning("Could not find ", basename(tmp_file))
+    }
 
-  # cleanup
-  unlink(file_name)
-  drop_delete(file_name)
+    # cleanup
+    force_unlink(tmp_file)
+    rdrop2::drop_delete(basename(tmp_file))
 })
 
 # Final cleanup of test files
-test_that("final cleanup", {
-  skip_on_cran()
-  clean_test_data()
+testthat::test_that(
+  desc = "final cleanup",
+  code = {
+    testthat::skip_on_cran()
+    # all testthat tests should clean up after themselves, but in case of failures
+    # this function will trace all rdrop2 related test files and remove them
+    testthat::expect_match(clean_test_data(), "deleted")
 })

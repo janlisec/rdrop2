@@ -15,3 +15,6 @@ man-roxygen
 cache/
 cran-comments.md
 ^CRAN-RELEASE$
+token.rds
+token_b64.txt
+check_package.R

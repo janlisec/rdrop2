@@ -7,3 +7,6 @@ cache/
 *.csv
 *.gif
 token.rds
+tests/testthat/token.rds
+token_b64.txt
+check_package.R
