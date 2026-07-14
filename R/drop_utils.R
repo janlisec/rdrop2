@@ -32,6 +32,7 @@ add_slashes <- function(path) {
 # Author page (currently unreachable):  https://sites.google.com/site/akhilsbehl/geekspace/articles/r/linearize_nested_lists_in
 # Original Author: Akhil S Bhel
 # Notes: Current author could not be reached and original site () appears defunct. Copyright remains with original author
+# Notes: [2026-07-13] several `1:length` calls substituted against `seq_along` to fix error in drop_dir()
 LinearizeNestedList <- function(NList, LinearizeDataFrames=FALSE,
                                 NameSep="/", ForceNames=FALSE) {
     # LinearizeNestedList:
@@ -44,7 +45,7 @@ LinearizeNestedList <- function(NList, LinearizeDataFrames=FALSE,
     # Implements a recursive algorithm to linearize nested lists upto any
     # arbitrary level of nesting (limited by R's allowance for recursion-depth).
     # By linearization, it is meant to bring all list branches emanating from
-    # any nth-nested trunk upto the top-level trunk s.t. the return value is a
+    # any nth-nested trunk up to the top-level trunk s.t. the return value is a
     # simple non-nested list having all branches emanating from this top-level
     # branch.
     #
@@ -89,7 +90,7 @@ LinearizeNestedList <- function(NList, LinearizeDataFrames=FALSE,
     # naming at all levels.
     #
     if (is.null(names(NList)) | ForceNames == TRUE)
-        names(NList) <- as.character(1:length(NList))
+        names(NList) <- as.character(seq_along(NList))
     #
     # If simply a dataframe deal promptly.
     #
@@ -138,7 +139,7 @@ LinearizeNestedList <- function(NList, LinearizeDataFrames=FALSE,
                     # Generate or coerce names as need be.
                     #
                     if (is.null(names(Element)) | ForceNames == TRUE)
-                        names(Element) <- as.character(1:length(Element))
+                        names(Element) <- as.character(seq_along(Element))
                     #
                     # Just throw back as list since dataframes have no nesting.
                     #
@@ -159,10 +160,11 @@ LinearizeNestedList <- function(NList, LinearizeDataFrames=FALSE,
                 # Go recursive! :)
                 #
                 if (is.null(names(Element)) | ForceNames == TRUE)
-                    names(Element) <- as.character(1:length(Element))
-                Element <- LinearizeNestedList(Element, LinearizeDataFrames,
-                                               NameSep, ForceNames)
-                names(Element) <- paste(EName, names(Element), sep=NameSep)
+                    names(Element) <- as.character(seq_along(Element))
+                Element <- LinearizeNestedList(Element, LinearizeDataFrames, NameSep, ForceNames)
+                if (length(Element) > 0) {
+                  names(Element) <- paste(EName, names(Element), sep=NameSep)
+                }
                 Jump <- length(Element)
                 NList <- c(Before, Element, After)
             }
