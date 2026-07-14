@@ -22,6 +22,17 @@ drop_history <- function(path, limit = 10, dtoken = get_dropbox_token()) {
 
   content <- drop_list_revisions(path, limit, dtoken)
 
+  # 20260714 Patch to deal with new return value of $property_groups = list() instead of = NULL
+  content$entries <- lapply(
+    content$entries,
+    function(x) {
+      if (length(x$property_groups) == 0) {
+        x$property_groups <- list(NULL)
+      }
+      x
+    }
+  )
+
   dplyr::bind_rows(content$entries)
 }
 
