@@ -1,3 +1,10 @@
+# rdrop2 0.8.2.3
+* removed dependency package `magrttr`
+* `testthat` tests modernized
+* function patch for LinearizeNestedList() causing a problem in drop_dir()
+* function patch for drop_list_revisions() causing a problem in drop_history()
+* modified README, DESCRIPTION and NEWS to indicate differences in this fork
+
 # rdrop2 0.8.2.2
 * replaced dependency package `assertive` by `assertthat`.
 
